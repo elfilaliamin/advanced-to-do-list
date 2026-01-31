@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%234f46e5%22><path d=%22M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z%22/></svg>" type="image/svg+xml" />
+<title>Advanced To-Do List</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+  --card: #ffffff;
+  --text: #1e293b;
+  --muted: #94a3b8;
+  --border: #e2e8f0;
+  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --ok: #10b981;
+  --info: #0ea5e9;
+
+  --chip: #f1f5f9;
+  --chip-text: #334155;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.app {
+  width: 100%;
+  max-width: 760px;
+  background: var(--card);
+  border-radius: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 28px;
+  position: relative;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 1.55rem;
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stat {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: var(--chip-text);
+  white-space: nowrap;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 16px 0;
+}
+
+.primary-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.btn {
+  padding: 12px 14px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn.secondary {
+  background: #f1f5f9;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn.secondary:hover {
+  background: #eaf0f8;
+  transform: translateY(-1px);
+}
+
+.btn.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.btn.danger:hover {
+  background: #fecaca;
+}
+
+.btn.small {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.controls input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.controls input[type="text"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.filters {
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  display: flex;
+  gap: 2px;
+}
+
+.filters button {
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.filters button.active {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.right-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.select {
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  min-width: 170px;
+}
+
+.select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+hr.sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 14px 0 16px 0;
+}
+
+/* List */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+li {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 14px 14px 14px 12px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+li:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+li.completed {
+  opacity: 0.65;
+  background: #f8fafc;
+}
+
+li.completed .task-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+li.overdue:not(.completed) {
+  border-color: #fecaca;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
+li.due-today:not(.completed) {
+  border-color: #fde68a;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+}
+
+/* Priority Indicators */
+li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+li.priority-high::before { background: #ef4444; }
+li.priority-medium::before { background: #f59e0b; }
+li.priority-low::before { background: #10b981; }
+
+/* Drag handle */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  padding: 0 10px 0 4px;
+  color: var(--muted);
+  cursor: grab;
+  user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-handle span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Task content */
+.task-main {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.task-title {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.task-meta {
+  font-size: 0.82rem;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chip {
+  background: var(--chip);
+  color: var(--chip-text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.78rem;
+}
+
+.chip.priority-high { border-color: rgba(239,68,68,0.35); }
+.chip.priority-medium { border-color: rgba(245,158,11,0.35); }
+.chip.priority-low { border-color: rgba(16,185,129,0.35); }
+
+.task-notes {
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.25rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.task-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 10px;
+}
+
+.task-actions button {
+  background: #f1f5f9;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 9px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.task-actions button:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.task-actions button.danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.empty {
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  color: #64748b;
+  background: rgba(255,255,255,0.55);
+}
+
+/* Modal */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 50;
+}
+
+.backdrop.open { display: flex; }
+
+.modal {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.modal-head {
+  padding: 16px 16px 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.modal-body {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.modal-foot {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  background: #0f172a;
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+  display: none;
+  z-index: 60;
+  max-width: min(520px, calc(100vw - 36px));
+  gap: 10px;
+  align-items: center;
+}
+
+.toast.show { display: flex; }
+
+.toast button {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.16);
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.toast button:hover { background: rgba(255,255,255,0.2); }
+
+.hidden-file {
+  display: none;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .row { grid-template-columns: 1fr; }
+  .task-actions { align-items: flex-start; }
+  .stats { justify-content: flex-start; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Advanced To-Do List</h1>
+    <div class="stats" aria-live="polite">
+      <div class="stat" id="statTotal">Total: 0</div>
+      <div class="stat" id="statActive">Active: 0</div>
+      <div class="stat" id="statDone">Completed: 0</div>
+      <div class="stat" id="statOverdue">Overdue: 0</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="primary-actions">
+      <button class="btn" id="btnAdd">+ Add task</button>
+      <button class="btn secondary" id="btnClearCompleted" title="Remove all completed tasks">Clear completed</button>
+      <button class="btn secondary" id="btnUndo" title="Undo last deletion" disabled>Undo</button>
+    </div>
+
+    <div class="primary-actions">
+      <button class="btn secondary" id="btnExport" title="Download tasks as JSON">Export</button>
+      <button class="btn secondary" id="btnImport" title="Import tasks from JSON">Import</button>
+      <button class="btn danger" id="btnReset" title="Clear all tasks and settings">Reset</button>
+      <input class="hidden-file" type="file" id="importFile" accept="application/json" />
+    </div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search title, notes, tags, category..." />
+    <div class="filters" role="tablist" aria-label="Task filters">
+      <button data-filter="all" role="tab" aria-selected="false">All</button>
+      <button data-filter="active" role="tab" aria-selected="true" class="active">Active</button>
+      <button data-filter="completed" role="tab" aria-selected="false">Completed</button>
+    </div>
+
+    <div class="right-controls">
+      <select class="select" id="sortBy" title="Sorting (manual order enables drag)">
+        <option value="manual">Sort: Manual</option>
+        <option value="dueAsc">Sort: Due date ↑</option>
+        <option value="dueDesc">Sort: Due date ↓</option>
+        <option value="priorityDesc">Sort: Priority ↓</option>
+        <option value="createdDesc">Sort: Newest</option>
+        <option value="createdAsc">Sort: Oldest</option>
+      </select>
+
+      <select class="select" id="groupBy" title="Optional grouping">
+        <option value="none">Group: None</option>
+        <option value="category">Group: Category</option>
+        <option value="date">Group: Date</option>
+        <option value="priority">Group: Priority</option>
+      </select>
+    </div>
+  </div>
+
+  <hr class="sep"/>
+
+  <ul id="list"></ul>
+  <div id="empty" class="empty" style="display:none;">
+    No tasks to show. Try changing filters or adding a new task.
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="backdrop" id="backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h2 class="modal-title" id="modalTitle">Add task</h2>
+      <button class="btn secondary small" id="btnCloseModal" aria-label="Close dialog">Close</button>
+    </div>
+
+    <form id="taskForm" autocomplete="off">
+      <div class="modal-body">
+        <div class="field">
+          <label for="title">Title *</label>
+          <input type="text" id="title" placeholder="Task title..." required maxlength="120" />
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="date">Due date</label>
+            <input type="date" id="date" />
+          </div>
+          <div class="field">
+            <label for="priority">Priority</label>
+            <select id="priority">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="category">Category</label>
+            <input type="text" id="category" placeholder="e.g. Work, Personal..." maxlength="40" />
+          </div>
+          <div class="field">
+            <label for="tags">Tags (comma separated)</label>
+            <input type="text" id="tags" placeholder="e.g. urgent, calls, admin" maxlength="120" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="repeat">Repeat</label>
+            <select id="repeat">
+              <option value="none">None</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="done">Status</label>
+            <select id="done">
+              <option value="false">Active</option>
+              <option value="true">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="notes">Notes</label>
+          <textarea id="notes" placeholder="Extra details..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn secondary" id="btnCancel">Cancel</button>
+        <button type="submit" class="btn" id="btnSave">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <div id="toastText"></div>
+  <button id="toastAction" style="display:none;"></button>
+  <button id="toastClose" aria-label="Close notification">✕</button>
+</div>
+
+<script>
+(() => {
+  // ---------- Storage keys ----------
+  const STORAGE_TASKS = "tasks_v2";
+  const STORAGE_SETTINGS = "todo_settings_v2";
+
+  // ---------- DOM ----------
+  const listEl = document.getElementById("list");
+  const emptyEl = document.getElementById("empty");
+
+  const statTotal = document.getElementById("statTotal");
+  const statActive = document.getElementById("statActive");
+  const statDone = document.getElementById("statDone");
+  const statOverdue = document.getElementById("statOverdue");
+
+  const searchEl = document.getElementById("search");
+  const sortEl = document.getElementById("sortBy");
+  const groupEl = document.getElementById("groupBy");
+  const filterBtns = [...document.querySelectorAll(".filters button")];
+
+  const btnAdd = document.getElementById("btnAdd");
+  const btnClearCompleted = document.getElementById("btnClearCompleted");
+  const btnUndo = document.getElementById("btnUndo");
+  const btnExport = document.getElementById("btnExport");
+  const btnImport = document.getElementById("btnImport");
+  const btnReset = document.getElementById("btnReset");
+  const importFile = document.getElementById("importFile");
+
+  // Modal
+  const backdrop = document.getElementById("backdrop");
+  const modalTitle = document.getElementById("modalTitle");
+  const btnCloseModal = document.getElementById("btnCloseModal");
+  const btnCancel = document.getElementById("btnCancel");
+  const taskForm = document.getElementById("taskForm");
+
+  // Form fields
+  const titleEl = document.getElementById("title");
+  const dateEl = document.getElementById("date");
+  const priorityEl = document.getElementById("priority");
+  const categoryEl = document.getElementById("category");
+  const tagsEl = document.getElementById("tags");
+  const repeatEl = document.getElementById("repeat");
+  const doneEl = document.getElementById("done");
+  const notesEl = document.getElementById("notes");
+
+  // Toast
+  const toast = document.getElementById("toast");
+  const toastText = document.getElementById("toastText");
+  const toastAction = document.getElementById("toastAction");
+  const toastClose = document.getElementById("toastClose");
+
+  // ---------- Helpers ----------
+  const nowIsoDate = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  };
+
+  const parseTags = (raw) =>
+    raw.split(",")
+      .map(s => s.trim())
+      .filter(Boolean)
+      .slice(0, 10);
+
+  const formatTags = (tags) => (Array.isArray(tags) ? tags.join(", ") : "");
+
+  const normalize = (s) => String(s ?? "").toLowerCase();
+
+  const makeId = () => {
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+  };
+
+  const priorityRank = (p) => ({ high: 3, medium: 2, low: 1 }[normalize(p)] ?? 0);
+
+  const isBefore = (a, b) => a && b && a < b;     // yyyy-mm-dd lexicographic works
+  const isSame = (a, b) => a && b && a === b;
+
+  function addDays(isoDate, days) {
+    if (!isoDate) return "";
+    const d = new Date(isoDate + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function addMonths(isoDate, months) {
+    if (!isoDate) return "";
+    const d = new Date(isoDate + "T00:00:00");
+    const day = d.getDate();
+    d.setMonth(d.getMonth() + months);
+
+    // Handle month rollover (e.g., Jan 31 + 1 month)
+    if (d.getDate() !== day) {
+      d.setDate(0); // last day of previous month
+    }
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ---------- State ----------
+  /** @type {Array<{
+   *  id: string,
+   *  title: string,
+   *  notes: string,
+   *  date: string,
+   *  priority: "Low"|"Medium"|"High",
+   *  category: string,
+   *  tags: string[],
+   *  repeat: "none"|"daily"|"weekly"|"monthly",
+   *  done: boolean,
+   *  createdAt: number,
+   *  order: number
+   * }>} */
+  let tasks = [];
+
+  let settings = {
+    filter: "active",
+    search: "",
+    sortBy: "manual",
+    groupBy: "none",
+  };
+
+  // Undo buffer (last delete)
+  let lastDeleted = null; // { task, index }
+  let toastTimer = null;
+
+  // Currently editing task id (null means add)
+  let editingId = null;
+
+  // ---------- Persistence ----------
+  function load() {
+    // tasks
+    const rawTasks = JSON.parse(localStorage.getItem(STORAGE_TASKS) || "[]");
+    tasks = Array.isArray(rawTasks) ? rawTasks : [];
+
+    // migrate/patch
+    const maxOrder = tasks.reduce((m, t) => Math.max(m, Number(t.order ?? 0)), 0);
+    let nextOrder = maxOrder + 1;
+    tasks = tasks.map(t => ({
+      id: String(t.id ?? makeId()),
+      title: String(t.title ?? "").trim(),
+      notes: String(t.notes ?? ""),
+      date: String(t.date ?? ""),
+      priority: (t.priority === "High" || t.priority === "Medium" || t.priority === "Low") ? t.priority : "Low",
+      category: String(t.category ?? ""),
+      tags: Array.isArray(t.tags) ? t.tags.map(x => String(x)).filter(Boolean) : parseTags(String(t.tags ?? "")),
+      repeat: (["none","daily","weekly","monthly"].includes(String(t.repeat))) ? t.repeat : "none",
+      done: !!t.done,
+      createdAt: Number(t.createdAt ?? Date.now()),
+      order: Number.isFinite(Number(t.order)) ? Number(t.order) : (nextOrder++),
+    })).filter(t => t.title); // drop empty titles
+
+    // settings
+    const rawSettings = JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || "{}");
+    if (rawSettings && typeof rawSettings === "object") {
+      settings = {
+        ...settings,
+        ...rawSettings,
+      };
+    }
+
+    // apply to UI
+    applySettingsToUI();
+  }
+
+  function saveTasks() {
+    localStorage.setItem(STORAGE_TASKS, JSON.stringify(tasks));
+  }
+
+  function saveSettings() {
+    localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(settings));
+  }
+
+  function applySettingsToUI() {
+    searchEl.value = settings.search ?? "";
+    sortEl.value = settings.sortBy ?? "manual";
+    groupEl.value = settings.groupBy ?? "none";
+
+    filterBtns.forEach(btn => {
+      const isActive = btn.dataset.filter === (settings.filter ?? "active");
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", String(isActive));
+    });
+  }
+
+  // ---------- Toast ----------
+  function showToast(message, actionLabel = null, actionFn = null, timeoutMs = 4500) {
+    toastText.textContent = message;
+
+    if (actionLabel && actionFn) {
+      toastAction.style.display = "inline-flex";
+      toastAction.textContent = actionLabel;
+      toastAction.onclick = () => {
+        try { actionFn(); } finally { hideToast(); }
+      };
+    } else {
+      toastAction.style.display = "none";
+      toastAction.onclick = null;
+    }
+
+    toast.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, timeoutMs);
+  }
+
+  function hideToast() {
+    toast.classList.remove("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+
+  toastClose.addEventListener("click", hideToast);
+
+  // ---------- Modal ----------
+  function openModal(mode, task = null) {
+    editingId = task ? task.id : null;
+    modalTitle.textContent = mode === "edit" ? "Edit task" : "Add task";
+
+    // defaults
+    titleEl.value = task?.title ?? "";
+    dateEl.value = task?.date ?? nowIsoDate();
+    priorityEl.value = task?.priority ?? "Low";
+    categoryEl.value = task?.category ?? "";
+    tagsEl.value = formatTags(task?.tags ?? []);
+    repeatEl.value = task?.repeat ?? "none";
+    doneEl.value = String(!!task?.done);
+    notesEl.value = task?.notes ?? "";
+
+    // open
+    backdrop.classList.add("open");
+    backdrop.setAttribute("aria-hidden", "false");
+    setTimeout(() => titleEl.focus(), 0);
+  }
+
+  function closeModal() {
+    backdrop.classList.remove("open");
+    backdrop.setAttribute("aria-hidden", "true");
+    editingId = null;
+    taskForm.reset();
+  }
+
+  function modalClickOutside(e) {
+    if (e.target === backdrop) closeModal();
+  }
+
+  btnCloseModal.addEventListener("click", closeModal);
+  btnCancel.addEventListener("click", closeModal);
+  backdrop.addEventListener("click", modalClickOutside);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && backdrop.classList.contains("open")) closeModal();
+  });
+
+  // ---------- Filtering / Sorting / Grouping ----------
+  function matchesFilter(t) {
+    const f = settings.filter;
+    if (f === "all") return true;
+    if (f === "active") return !t.done;
+    if (f === "completed") return t.done;
+    return true;
+  }
+
+  function matchesSearch(t) {
+    const q = normalize(settings.search).trim();
+    if (!q) return true;
+    const hay = [
+      t.title,
+      t.notes,
+      t.category,
+      (t.tags || []).join(" "),
+      t.priority,
+      t.date,
+      t.repeat
+    ].map(normalize).join(" • ");
+    return hay.includes(q);
+  }
+
+  function getSortedTasks(items) {
+    const sortBy = settings.sortBy;
+
+    const withDueKey = (t) => t.date || "9999-12-31";
+
+    const cmp = {
+      manual: (a, b) => (a.order - b.order),
+      dueAsc: (a, b) => withDueKey(a).localeCompare(withDueKey(b)) || (a.order - b.order),
+      dueDesc: (a, b) => withDueKey(b).localeCompare(withDueKey(a)) || (a.order - b.order),
+      priorityDesc: (a, b) => (priorityRank(b.priority) - priorityRank(a.priority)) || (a.order - b.order),
+      createdDesc: (a, b) => (b.createdAt - a.createdAt) || (a.order - b.order),
+      createdAsc: (a, b) => (a.createdAt - b.createdAt) || (a.order - b.order),
+    }[sortBy] || ((a, b) => (a.order - b.order));
+
+    return [...items].sort(cmp);
+  }
+
+  function groupKey(t) {
+    const g = settings.groupBy;
+    if (g === "category") return (t.category || "No category");
+    if (g === "date") return (t.date || "No date");
+    if (g === "priority") return (t.priority || "Low");
+    return "";
+  }
+
+  function makeGroupLabel(key) {
+    if (settings.groupBy === "priority") return `Priority: ${key}`;
+    if (settings.groupBy === "category") return `Category: ${key}`;
+    if (settings.groupBy === "date") return `Date: ${key}`;
+    return key;
+  }
+
+  // ---------- Recurrence ----------
+  // Simple behavior: if a recurring task is marked completed, we automatically schedule its next due date and keep it Active.
+  function advanceRecurring(task) {
+    if (!task || task.repeat === "none") return false;
+
+    const base = task.date || nowIsoDate();
+    let next = base;
+
+    if (task.repeat === "daily") next = addDays(base, 1);
+    if (task.repeat === "weekly") next = addDays(base, 7);
+    if (task.repeat === "monthly") next = addMonths(base, 1);
+
+    task.date = next;
+    task.done = false;
+    return true;
+  }
+
+  // ---------- Rendering ----------
+  function computeStats() {
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    const active = total - done;
+
+    const today = nowIsoDate();
+    const overdue = tasks.filter(t => !t.done && t.date && isBefore(t.date, today)).length;
+
+    statTotal.textContent = `Total: ${total}`;
+    statActive.textContent = `Active: ${active}`;
+    statDone.textContent = `Completed: ${done}`;
+    statOverdue.textContent = `Overdue: ${overdue}`;
+  }
+
+  function createGroupHeader(label) {
+    const li = document.createElement("li");
+    li.style.padding = "12px 14px";
+    li.style.background = "rgba(241,245,249,0.7)";
+    li.style.borderStyle = "dashed";
+    li.style.cursor = "default";
+    li.style.transform = "none";
+    li.style.boxShadow = "none";
+    li.innerHTML = `<div style="font-weight:600; color:#334155; width:100%">${escapeHtml(label)}</div>`;
+    return li;
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[c]));
+  }
+
+  function render() {
+    listEl.innerHTML = "";
+    computeStats();
+
+    const filtered = tasks.filter(matchesFilter).filter(matchesSearch);
+    const sorted = getSortedTasks(filtered);
+
+    // empty state
+    emptyEl.style.display = sorted.length ? "none" : "block";
+
+    // If not manual sort or grouping is enabled -> drag reorder disabled
+    const dragEnabled = settings.sortBy === "manual" && settings.groupBy === "none" && !settings.search.trim() && settings.filter === "all";
+
+    // Grouping
+    if (settings.groupBy === "none") {
+      sorted.forEach((t, idx) => listEl.appendChild(renderTaskItem(t, idx, dragEnabled, sorted)));
+    } else {
+      const groups = new Map();
+      for (const t of sorted) {
+        const key = groupKey(t);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(t);
+      }
+
+      // stable order of groups
+      const groupKeys = [...groups.keys()].sort((a, b) => String(a).localeCompare(String(b)));
+      for (const key of groupKeys) {
+        listEl.appendChild(createGroupHeader(makeGroupLabel(key)));
+        const arr = groups.get(key);
+        arr.forEach((t, idx) => listEl.appendChild(renderTaskItem(t, idx, false, arr)));
+      }
+    }
+
+    // Button states
+    btnUndo.disabled = !lastDeleted;
+  }
+
+  function renderTaskItem(task, index, dragEnabled, viewArray) {
+    const li = document.createElement("li");
+
+    const today = nowIsoDate();
+    const isOverdue = !!task.date && isBefore(task.date, today) && !task.done;
+    const isToday = !!task.date && isSame(task.date, today) && !task.done;
+
+    li.className = `priority-${normalize(task.priority)} ${task.done ? "completed" : ""} ${isOverdue ? "overdue" : ""} ${isToday ? "due-today" : ""}`;
+    li.dataset.id = task.id;
+
+    // draggable only if enabled
+    li.draggable = !!dragEnabled;
+
+    // Drag handle
+    const handle = document.createElement("div");
+    handle.className = "drag-handle";
+    handle.title = dragEnabled ? "Drag to reorder" : "Drag disabled (set filter: All, no search, sort: Manual, group: None)";
+    handle.innerHTML = `<span aria-hidden="true">⠿</span>`;
+    handle.setAttribute("aria-label", "Drag handle");
+
+    // If drag disabled, make handle look inactive
+    if (!dragEnabled) {
+      handle.style.opacity = "0.35";
+      handle.style.cursor = "not-allowed";
+    }
+
+    const main = document.createElement("div");
+    main.className = "task-main";
+
+    const info = document.createElement("div");
+    info.className = "task-info";
+
+    const title = document.createElement("div");
+    title.className = "task-title";
+    title.textContent = task.title;
+
+    const meta = document.createElement("div");
+    meta.className = "task-meta";
+
+    // chips
+    const dateChip = document.createElement("span");
+    dateChip.className = "chip";
+    dateChip.textContent = task.date || "No date";
+
+    const priorityChip = document.createElement("span");
+    priorityChip.className = `chip priority-${normalize(task.priority)}`;
+    priorityChip.textContent = task.priority;
+
+    const catChip = document.createElement("span");
+    catChip.className = "chip";
+    catChip.textContent = task.category ? `#${task.category}` : "No category";
+
+    const repeatChip = document.createElement("span");
+    repeatChip.className = "chip";
+    repeatChip.textContent = task.repeat !== "none" ? `Repeat: ${task.repeat}` : "No repeat";
+
+    meta.append(dateChip, priorityChip, catChip, repeatChip);
+
+    if (Array.isArray(task.tags) && task.tags.length) {
+      const tagsChip = document.createElement("span");
+      tagsChip.className = "chip";
+      tagsChip.textContent = "Tags: " + task.tags.slice(0, 6).join(", ") + (task.tags.length > 6 ? "…" : "");
+      meta.appendChild(tagsChip);
+    }
+
+    info.append(title, meta);
+
+    if (task.notes && task.notes.trim()) {
+      const notes = document.createElement("div");
+      notes.className = "task-notes";
+      notes.textContent = task.notes.trim();
+      info.appendChild(notes);
+    }
+
+    main.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "task-actions";
+
+    const btnToggle = document.createElement("button");
+    btnToggle.title = task.repeat !== "none"
+      ? (task.done ? "Re-activate" : "Complete (will schedule next)")
+      : (task.done ? "Mark active" : "Mark completed");
+    btnToggle.setAttribute("aria-label", "Toggle complete");
+    btnToggle.textContent = "✔";
+    btnToggle.dataset.action = "toggle";
+
+    const btnEditTask = document.createElement("button");
+    btnEditTask.title = "Edit task";
+    btnEditTask.setAttribute("aria-label", "Edit task");
+    btnEditTask.textContent = "✎";
+    btnEditTask.dataset.action = "edit";
+
+    const btnDelete = document.createElement("button");
+    btnDelete.title = "Delete task";
+    btnDelete.setAttribute("aria-label", "Delete task");
+    btnDelete.textContent = "✖";
+    btnDelete.classList.add("danger");
+    btnDelete.dataset.action = "delete";
+
+    actions.append(btnToggle, btnEditTask, btnDelete);
+
+    li.append(handle, main, actions);
+
+    // Drag events
+    if (dragEnabled) {
+      li.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", task.id);
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      li.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      });
+
+      li.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const fromId = e.dataTransfer.getData("text/plain");
+        const toId = task.id;
+        if (!fromId || fromId === toId) return;
+
+        // reorder by swapping 'order' positions
+        const fromTask = tasks.find(t => t.id === fromId);
+        const toTask = tasks.find(t => t.id === toId);
+        if (!fromTask || !toTask) return;
+
+        // We'll place fromTask before toTask in manual order.
+        // We do this by assigning an order between neighbors.
+        const manualAll = getSortedTasks(tasks); // manual sorted by order
+        const toIndex = manualAll.findIndex(t => t.id === toId);
+        const fromIndex = manualAll.findIndex(t => t.id === fromId);
+
+        // remove from
+        manualAll.splice(fromIndex, 1);
+        const newToIndex = manualAll.findIndex(t => t.id === toId);
+
+        // insert before target
+        manualAll.splice(newToIndex, 0, fromTask);
+
+        // re-number orders to keep it simple and stable
+        manualAll.forEach((t, i) => t.order = i + 1);
+        saveTasks();
+        render();
+      });
+    }
+
+    return li;
+  }
+
+  // ---------- Actions ----------
+  function getTask(id) {
+    return tasks.find(t => t.id === id) || null;
+  }
+
+  function upsertTask(task) {
+    const idx = tasks.findIndex(t => t.id === task.id);
+    if (idx >= 0) tasks[idx] = task;
+    else tasks.push(task);
+    saveTasks();
+  }
+
+  function deleteTask(id, askConfirm = true) {
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx < 0) return;
+
+    const task = tasks[idx];
+    if (askConfirm) {
+      const ok = confirm(`Delete "${task.title}"?`);
+      if (!ok) return;
+    }
+
+    lastDeleted = { task: structuredClone(task), index: idx };
+    tasks.splice(idx, 1);
+    saveTasks();
+    render();
+
+    showToast(`Deleted "${task.title}".`, "Undo", undoDelete);
+  }
+
+  function undoDelete() {
+    if (!lastDeleted) return;
+    const { task, index } = lastDeleted;
+    const safeIndex = Math.min(Math.max(index, 0), tasks.length);
+    tasks.splice(safeIndex, 0, task);
+
+    // Ensure unique ID if colliding (rare but safe)
+    if (tasks.filter(t => t.id === task.id).length > 1) task.id = makeId();
+
+    // Re-number orders if in manual mode for stability
+    if (settings.sortBy === "manual") {
+      tasks
+        .sort((a, b) => a.order - b.order)
+        .forEach((t, i) => t.order = i + 1);
+    }
+
+    lastDeleted = null;
+    saveTasks();
+    render();
+    showToast("Undo complete.");
+  }
+
+  function toggleTask(id) {
+    const t = getTask(id);
+    if (!t) return;
+
+    // If it is recurring and currently active: completing schedules next
+    if (!t.done) {
+      t.done = true;
+
+      const didAdvance = advanceRecurring(t);
+      if (didAdvance) {
+        saveTasks();
+        render();
+        showToast(`Scheduled next: "${t.title}" → ${t.date}`);
+        return;
+      }
+    } else {
+      // If already done, just re-activate
+      t.done = false;
+    }
+
+    saveTasks();
+    render();
+  }
+
+  function clearCompleted() {
+    const completed = tasks.filter(t => t.done);
+    if (!completed.length) {
+      showToast("No completed tasks to clear.");
+      return;
+    }
+
+    const ok = confirm(`Remove ${completed.length} completed task(s)?`);
+    if (!ok) return;
+
+    // We can't "undo" a bulk delete easily; we will store a snapshot for undo.
+    const snapshot = structuredClone(tasks);
+    tasks = tasks.filter(t => !t.done);
+    saveTasks();
+    render();
+
+    lastDeleted = {
+      task: { __bulk: true, snapshot },
+      index: 0
+    };
+    btnUndo.disabled = false;
+
+    showToast(`Cleared ${completed.length} task(s).`, "Undo", () => {
+      if (lastDeleted?.task?.__bulk) {
+        tasks = structuredClone(lastDeleted.task.snapshot);
+        lastDeleted = null;
+        saveTasks();
+        render();
+        showToast("Undo complete.");
+      }
+    });
+  }
+
+  function exportJson() {
+    const payload = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      tasks,
+      settings
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "todo-tasks.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+    showToast("Exported tasks as JSON.");
+  }
+
+  async function importJsonFile(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      let importedTasks = [];
+      let importedSettings = null;
+
+      if (Array.isArray(data)) {
+        importedTasks = data;
+      } else if (data && typeof data === "object") {
+        if (Array.isArray(data.tasks)) importedTasks = data.tasks;
+        if (data.settings && typeof data.settings === "object") importedSettings = data.settings;
+      }
+
+      if (!Array.isArray(importedTasks) || importedTasks.length === 0) {
+        showToast("Import failed: no tasks found in JSON.");
+        return;
+      }
+
+      const existingIds = new Set(tasks.map(t => t.id));
+      const maxOrder = tasks.reduce((m, t) => Math.max(m, Number(t.order ?? 0)), 0);
+      let nextOrder = maxOrder + 1;
+
+      const normalized = importedTasks
+        .map(t => ({
+          id: String(t.id ?? makeId()),
+          title: String(t.title ?? "").trim(),
+          notes: String(t.notes ?? ""),
+          date: String(t.date ?? ""),
+          priority: (t.priority === "High" || t.priority === "Medium" || t.priority === "Low") ? t.priority : "Low",
+          category: String(t.category ?? ""),
+          tags: Array.isArray(t.tags) ? t.tags.map(x => String(x)).filter(Boolean) : parseTags(String(t.tags ?? "")),
+          repeat: (["none","daily","weekly","monthly"].includes(String(t.repeat))) ? t.repeat : "none",
+          done: !!t.done,
+          createdAt: Number(t.createdAt ?? Date.now()),
+          order: Number.isFinite(Number(t.order)) ? Number(t.order) : (nextOrder++),
+        }))
+        .filter(t => t.title);
+
+      // avoid ID collisions
+      for (const t of normalized) {
+        if (existingIds.has(t.id)) t.id = makeId();
+        existingIds.add(t.id);
+      }
+
+      // merge
+      tasks.push(...normalized);
+
+      // apply settings if present
+      if (importedSettings) {
+        settings = {
+          ...settings,
+          filter: importedSettings.filter ?? settings.filter,
+          search: importedSettings.search ?? settings.search,
+          sortBy: importedSettings.sortBy ?? settings.sortBy,
+          groupBy: importedSettings.groupBy ?? settings.groupBy,
+        };
+        saveSettings();
+        applySettingsToUI();
+      }
+
+      saveTasks();
+      render();
+      showToast(`Imported ${normalized.length} task(s).`);
+    } catch (err) {
+      console.error(err);
+      showToast("Import failed: invalid JSON file.");
+    } finally {
+      importFile.value = "";
+    }
+  }
+
+  function resetAll() {
+    const ok = confirm("This will delete ALL tasks and settings. Continue?");
+    if (!ok) return;
+
+    tasks = [];
+    settings = { filter: "active", search: "", sortBy: "manual", groupBy: "none" };
+    lastDeleted = null;
+
+    localStorage.removeItem(STORAGE_TASKS);
+    localStorage.removeItem(STORAGE_SETTINGS);
+
+    applySettingsToUI();
+    render();
+    showToast("Reset complete.");
+  }
+
+  // ---------- Event wiring ----------
+  btnAdd.addEventListener("click", () => openModal("add", null));
+
+  btnClearCompleted.addEventListener("click", clearCompleted);
+
+  btnUndo.addEventListener("click", () => {
+    if (lastDeleted?.task?.__bulk) {
+      tasks = structuredClone(lastDeleted.task.snapshot);
+      lastDeleted = null;
+      saveTasks();
+      render();
+      showToast("Undo complete.");
+      return;
+    }
+    undoDelete();
+  });
+
+  btnExport.addEventListener("click", exportJson);
+
+  btnImport.addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", () => importJsonFile(importFile.files?.[0]));
+
+  btnReset.addEventListener("click", resetAll);
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      filterBtns.forEach(b => {
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-selected", String(active));
+      });
+      settings.filter = btn.dataset.filter;
+      saveSettings();
+      render();
+    });
+  });
+
+  searchEl.addEventListener("input", () => {
+    settings.search = searchEl.value;
+    saveSettings();
+    render();
+  });
+
+  sortEl.addEventListener("change", () => {
+    settings.sortBy = sortEl.value;
+    saveSettings();
+    render();
+    const dragTip = (settings.sortBy === "manual" && settings.groupBy === "none" && settings.filter === "all" && !settings.search.trim())
+      ? "Drag is enabled (Manual + All + no search + no grouping)."
+      : "Drag is disabled with current view (use Manual + All + no search + no grouping).";
+    showToast(dragTip, null, null, 2600);
+  });
+
+  groupEl.addEventListener("change", () => {
+    settings.groupBy = groupEl.value;
+    saveSettings();
+    render();
+  });
+
+  // List event delegation (toggle/edit/delete)
+  listEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const li = e.target.closest("li");
+    if (!li) return;
+    const id = li.dataset.id;
+    if (!id) return;
+
+    const action = btn.dataset.action;
+    if (action === "toggle") toggleTask(id);
+    if (action === "edit") {
+      const t = getTask(id);
+      if (t) openModal("edit", t);
+    }
+    if (action === "delete") deleteTask(id, true);
+  });
+
+  // Form submit (add/edit)
+  taskForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const title = titleEl.value.trim();
+    if (!title) {
+      showToast("Title is required.");
+      titleEl.focus();
+      return;
+    }
+
+    const taskData = {
+      title,
+      date: dateEl.value || "",
+      priority: priorityEl.value,
+      category: categoryEl.value.trim(),
+      tags: parseTags(tagsEl.value),
+      repeat: repeatEl.value,
+      done: doneEl.value === "true",
+      notes: notesEl.value || ""
+    };
+
+    if (editingId) {
+      const existing = getTask(editingId);
+      if (!existing) {
+        showToast("Could not find task to edit.");
+        closeModal();
+        return;
+      }
+
+      const updated = { ...existing, ...taskData };
+      upsertTask(updated);
+      showToast("Task updated.");
+    } else {
+      const maxOrder = tasks.reduce((m, t) => Math.max(m, Number(t.order ?? 0)), 0);
+      const newTask = {
+        id: makeId(),
+        createdAt: Date.now(),
+        order: maxOrder + 1,
+        ...taskData
+      };
+      tasks.push(newTask);
+      saveTasks();
+      showToast("Task added.");
+    }
+
+    closeModal();
+    render();
+  });
+
+  // Quick keyboard shortcut: "/" focuses search when not typing in a field
+  document.addEventListener("keydown", (e) => {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    const isTyping = ["input","textarea","select"].includes(tag);
+    if (!isTyping && e.key === "/") {
+      e.preventDefault();
+      searchEl.focus();
+    }
+  });
+
+  // ---------- Init ----------
+  load();
+  // Ensure modal date starts as today for new task
+  dateEl.value = nowIsoDate();
+  render();
+
+  // Helpful first-time hint
+  if (!localStorage.getItem("todo_first_hint")) {
+    localStorage.setItem("todo_first_hint", "1");
+    showToast("Tip: Drag reorder works only with Filter=All, Sort=Manual, Group=None, and empty search.", null, null, 5000);
+  }
+})();
+</script>
+</body>
+</html>
