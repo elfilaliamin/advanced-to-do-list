@@ -748,6 +748,22 @@ li.priority-low::before { background: #10b981; }
     return d.toISOString().slice(0, 10);
   }
 
+  // ---------- Daily streak / hide-today helpers ----------
+  function daysDiff(aIso, bIso) {
+    if (!aIso || !bIso) return 999999;
+    const a = new Date(aIso + "T00:00:00");
+    const b = new Date(bIso + "T00:00:00");
+    return Math.round((b - a) / 86400000);
+  }
+
+  function isDaily(task) {
+    return String(task?.repeat || "none") === "daily";
+  }
+
+  function isDailyDoneToday(task) {
+    return isDaily(task) && task.lastDoneDate === nowIsoDate();
+  }
+
   // ---------- State ----------
   /** @type {Array<{
    *  id: string,
@@ -760,7 +776,9 @@ li.priority-low::before { background: #10b981; }
    *  repeat: "none"|"daily"|"weekly"|"monthly",
    *  done: boolean,
    *  createdAt: number,
-   *  order: number
+   *  order: number,
+   *  lastDoneDate?: string,
+   *  streak?: number
    * }>} */
   let tasks = [];
 
@@ -787,6 +805,7 @@ li.priority-low::before { background: #10b981; }
     // migrate/patch
     const maxOrder = tasks.reduce((m, t) => Math.max(m, Number(t.order ?? 0)), 0);
     let nextOrder = maxOrder + 1;
+
     tasks = tasks.map(t => ({
       id: String(t.id ?? makeId()),
       title: String(t.title ?? "").trim(),
@@ -795,8 +814,15 @@ li.priority-low::before { background: #10b981; }
       priority: (t.priority === "High" || t.priority === "Medium" || t.priority === "Low") ? t.priority : "Low",
       category: String(t.category ?? ""),
       tags: Array.isArray(t.tags) ? t.tags.map(x => String(x)).filter(Boolean) : parseTags(String(t.tags ?? "")),
-      repeat: (["none","daily","weekly","monthly"].includes(String(t.repeat))) ? t.repeat : "none",
-      done: !!t.done,
+      repeat: (["none","daily","weekly","monthly"].includes(String(t.repeat))) ? String(t.repeat) : "none",
+
+      // Daily tracking
+      lastDoneDate: String(t.lastDoneDate ?? ""),
+      streak: Number.isFinite(Number(t.streak)) ? Number(t.streak) : 0,
+
+      // IMPORTANT: daily tasks should not remain "done" forever; they reset based on date
+      done: (String(t.repeat) === "daily") ? false : !!t.done,
+
       createdAt: Number(t.createdAt ?? Date.now()),
       order: Number.isFinite(Number(t.order)) ? Number(t.order) : (nextOrder++),
     })).filter(t => t.title); // drop empty titles
@@ -874,7 +900,11 @@ li.priority-low::before { background: #10b981; }
     categoryEl.value = task?.category ?? "";
     tagsEl.value = formatTags(task?.tags ?? []);
     repeatEl.value = task?.repeat ?? "none";
-    doneEl.value = String(!!task?.done);
+
+    // For daily tasks, "Completed" means "done today"
+    const doneValue = isDaily(task) ? String(task?.lastDoneDate === nowIsoDate()) : String(!!task?.done);
+    doneEl.value = task ? doneValue : "false";
+
     notesEl.value = task?.notes ?? "";
 
     // open
@@ -904,6 +934,10 @@ li.priority-low::before { background: #10b981; }
   // ---------- Filtering / Sorting / Grouping ----------
   function matchesFilter(t) {
     const f = settings.filter;
+
+    // Daily "done today" tasks are hidden from the list entirely,
+    // so filter logic stays simple and applies to what's visible.
+
     if (f === "all") return true;
     if (f === "active") return !t.done;
     if (f === "completed") return t.done;
@@ -920,7 +954,9 @@ li.priority-low::before { background: #10b981; }
       (t.tags || []).join(" "),
       t.priority,
       t.date,
-      t.repeat
+      t.repeat,
+      // include streak/daily metadata in search a bit
+      (isDaily(t) ? `streak ${t.streak || 0}` : "")
     ].map(normalize).join(" • ");
     return hay.includes(q);
   }
@@ -958,14 +994,13 @@ li.priority-low::before { background: #10b981; }
   }
 
   // ---------- Recurrence ----------
-  // Simple behavior: if a recurring task is marked completed, we automatically schedule its next due date and keep it Active.
+  // Non-daily behavior: if a recurring task is marked completed, schedule its next due date and keep it Active.
   function advanceRecurring(task) {
-    if (!task || task.repeat === "none") return false;
+    if (!task || task.repeat === "none" || task.repeat === "daily") return false;
 
     const base = task.date || nowIsoDate();
     let next = base;
 
-    if (task.repeat === "daily") next = addDays(base, 1);
     if (task.repeat === "weekly") next = addDays(base, 7);
     if (task.repeat === "monthly") next = addMonths(base, 1);
 
@@ -977,11 +1012,18 @@ li.priority-low::before { background: #10b981; }
   // ---------- Rendering ----------
   function computeStats() {
     const total = tasks.length;
-    const done = tasks.filter(t => t.done).length;
+
+    const doneNonDaily = tasks.filter(t => t.done && !isDaily(t)).length;
+    const doneDailyToday = tasks.filter(t => isDailyDoneToday(t)).length;
+
+    const done = doneNonDaily + doneDailyToday;
     const active = total - done;
 
     const today = nowIsoDate();
-    const overdue = tasks.filter(t => !t.done && t.date && isBefore(t.date, today)).length;
+    const overdue = tasks.filter(t => {
+      if (isDailyDoneToday(t)) return false;
+      return !t.done && t.date && isBefore(t.date, today);
+    }).length;
 
     statTotal.textContent = `Total: ${total}`;
     statActive.textContent = `Active: ${active}`;
@@ -1011,14 +1053,21 @@ li.priority-low::before { background: #10b981; }
     listEl.innerHTML = "";
     computeStats();
 
-    const filtered = tasks.filter(matchesFilter).filter(matchesSearch);
+    // Hide daily tasks that were completed today (they return tomorrow automatically)
+    const visibleTasks = tasks.filter(t => !isDailyDoneToday(t));
+
+    const filtered = visibleTasks.filter(matchesFilter).filter(matchesSearch);
     const sorted = getSortedTasks(filtered);
 
     // empty state
     emptyEl.style.display = sorted.length ? "none" : "block";
 
     // If not manual sort or grouping is enabled -> drag reorder disabled
-    const dragEnabled = settings.sortBy === "manual" && settings.groupBy === "none" && !settings.search.trim() && settings.filter === "all";
+    const dragEnabled =
+      settings.sortBy === "manual" &&
+      settings.groupBy === "none" &&
+      !settings.search.trim() &&
+      settings.filter === "all";
 
     // Grouping
     if (settings.groupBy === "none") {
@@ -1102,6 +1151,14 @@ li.priority-low::before { background: #10b981; }
 
     meta.append(dateChip, priorityChip, catChip, repeatChip);
 
+    // Daily streak chip
+    if (isDaily(task)) {
+      const streakChip = document.createElement("span");
+      streakChip.className = "chip";
+      streakChip.textContent = `Streak: ${Number(task.streak || 0)}`;
+      meta.appendChild(streakChip);
+    }
+
     if (Array.isArray(task.tags) && task.tags.length) {
       const tagsChip = document.createElement("span");
       tagsChip.className = "chip";
@@ -1124,9 +1181,11 @@ li.priority-low::before { background: #10b981; }
     actions.className = "task-actions";
 
     const btnToggle = document.createElement("button");
-    btnToggle.title = task.repeat !== "none"
-      ? (task.done ? "Re-activate" : "Complete (will schedule next)")
-      : (task.done ? "Mark active" : "Mark completed");
+    btnToggle.title = isDaily(task)
+      ? "Complete for today (will disappear until tomorrow)"
+      : (task.repeat !== "none"
+          ? (task.done ? "Re-activate" : "Complete (will schedule next)")
+          : (task.done ? "Mark active" : "Mark completed"));
     btnToggle.setAttribute("aria-label", "Toggle complete");
     btnToggle.textContent = "✔";
     btnToggle.dataset.action = "toggle";
@@ -1171,17 +1230,13 @@ li.priority-low::before { background: #10b981; }
         const toTask = tasks.find(t => t.id === toId);
         if (!fromTask || !toTask) return;
 
-        // We'll place fromTask before toTask in manual order.
-        // We do this by assigning an order between neighbors.
+        // place fromTask before toTask in manual order.
         const manualAll = getSortedTasks(tasks); // manual sorted by order
         const toIndex = manualAll.findIndex(t => t.id === toId);
         const fromIndex = manualAll.findIndex(t => t.id === fromId);
 
-        // remove from
         manualAll.splice(fromIndex, 1);
         const newToIndex = manualAll.findIndex(t => t.id === toId);
-
-        // insert before target
         manualAll.splice(newToIndex, 0, fromTask);
 
         // re-number orders to keep it simple and stable
@@ -1250,7 +1305,30 @@ li.priority-low::before { background: #10b981; }
     const t = getTask(id);
     if (!t) return;
 
-    // If it is recurring and currently active: completing schedules next
+    // --- DAILY behavior: complete for today -> hide until tomorrow + streak ---
+    if (isDaily(t)) {
+      const today = nowIsoDate();
+
+      if (t.lastDoneDate === today) {
+        showToast("Already completed for today.");
+        return;
+      }
+
+      const gap = t.lastDoneDate ? daysDiff(t.lastDoneDate, today) : 999999;
+
+      if (gap === 1) t.streak = (Number(t.streak) || 0) + 1;
+      else t.streak = 1;
+
+      t.lastDoneDate = today;
+      t.done = false; // daily doesn't stay permanently completed
+
+      saveTasks();
+      render();
+      showToast(`Done for today. Streak: ${t.streak} day(s).`);
+      return;
+    }
+
+    // --- Existing behavior for non-daily tasks ---
     if (!t.done) {
       t.done = true;
 
@@ -1262,7 +1340,6 @@ li.priority-low::before { background: #10b981; }
         return;
       }
     } else {
-      // If already done, just re-activate
       t.done = false;
     }
 
@@ -1271,7 +1348,7 @@ li.priority-low::before { background: #10b981; }
   }
 
   function clearCompleted() {
-    const completed = tasks.filter(t => t.done);
+    const completed = tasks.filter(t => t.done && !isDaily(t));
     if (!completed.length) {
       showToast("No completed tasks to clear.");
       return;
@@ -1280,9 +1357,9 @@ li.priority-low::before { background: #10b981; }
     const ok = confirm(`Remove ${completed.length} completed task(s)?`);
     if (!ok) return;
 
-    // We can't "undo" a bulk delete easily; we will store a snapshot for undo.
+    // store snapshot for undo
     const snapshot = structuredClone(tasks);
-    tasks = tasks.filter(t => !t.done);
+    tasks = tasks.filter(t => !(t.done && !isDaily(t)));
     saveTasks();
     render();
 
@@ -1358,8 +1435,13 @@ li.priority-low::before { background: #10b981; }
           priority: (t.priority === "High" || t.priority === "Medium" || t.priority === "Low") ? t.priority : "Low",
           category: String(t.category ?? ""),
           tags: Array.isArray(t.tags) ? t.tags.map(x => String(x)).filter(Boolean) : parseTags(String(t.tags ?? "")),
-          repeat: (["none","daily","weekly","monthly"].includes(String(t.repeat))) ? t.repeat : "none",
-          done: !!t.done,
+          repeat: (["none","daily","weekly","monthly"].includes(String(t.repeat))) ? String(t.repeat) : "none",
+
+          lastDoneDate: String(t.lastDoneDate ?? ""),
+          streak: Number.isFinite(Number(t.streak)) ? Number(t.streak) : 0,
+
+          done: (String(t.repeat) === "daily") ? false : !!t.done,
+
           createdAt: Number(t.createdAt ?? Date.now()),
           order: Number.isFinite(Number(t.order)) ? Number(t.order) : (nextOrder++),
         }))
@@ -1503,16 +1585,35 @@ li.priority-low::before { background: #10b981; }
       return;
     }
 
+    const repeatVal = repeatEl.value;
+    const wantsDone = doneEl.value === "true";
+    const today = nowIsoDate();
+
     const taskData = {
       title,
       date: dateEl.value || "",
       priority: priorityEl.value,
       category: categoryEl.value.trim(),
       tags: parseTags(tagsEl.value),
-      repeat: repeatEl.value,
-      done: doneEl.value === "true",
+      repeat: repeatVal,
+      done: (repeatVal === "daily") ? false : wantsDone,
       notes: notesEl.value || ""
     };
+
+    // If user marks a DAILY task as "Completed" in the modal,
+    // treat it as "done today" and calculate streak.
+    if (repeatVal === "daily" && wantsDone) {
+      const existing = editingId ? getTask(editingId) : null;
+
+      const prev = existing?.lastDoneDate || "";
+      const gap = prev ? daysDiff(prev, today) : 999999;
+
+      let nextStreak = 1;
+      if (existing && gap === 1) nextStreak = (Number(existing.streak) || 0) + 1;
+
+      taskData.lastDoneDate = today;
+      taskData.streak = nextStreak;
+    }
 
     if (editingId) {
       const existing = getTask(editingId);
@@ -1522,7 +1623,22 @@ li.priority-low::before { background: #10b981; }
         return;
       }
 
-      const updated = { ...existing, ...taskData };
+      // If task is switched AWAY from daily, keep streak fields but they won't affect UI.
+      // If task is switched TO daily and not marked done, keep previous streak/lastDoneDate.
+      const updated = {
+        ...existing,
+        ...taskData,
+        lastDoneDate: (repeatVal === "daily")
+          ? String(taskData.lastDoneDate ?? existing.lastDoneDate ?? "")
+          : String(existing.lastDoneDate ?? ""),
+        streak: (repeatVal === "daily")
+          ? Number.isFinite(Number(taskData.streak)) ? Number(taskData.streak) : Number(existing.streak || 0)
+          : Number(existing.streak || 0),
+      };
+
+      // If daily and not done today, ensure not permanently done
+      if (repeatVal === "daily") updated.done = false;
+
       upsertTask(updated);
       showToast("Task updated.");
     } else {
@@ -1531,10 +1647,14 @@ li.priority-low::before { background: #10b981; }
         id: makeId(),
         createdAt: Date.now(),
         order: maxOrder + 1,
+        lastDoneDate: String(taskData.lastDoneDate ?? ""),
+        streak: Number.isFinite(Number(taskData.streak)) ? Number(taskData.streak) : 0,
         ...taskData
       };
       tasks.push(newTask);
       saveTasks();
+
+      // If created as daily + completed, it will disappear immediately.
       showToast("Task added.");
     }
 
